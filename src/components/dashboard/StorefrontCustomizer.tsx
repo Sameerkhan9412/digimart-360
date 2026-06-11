@@ -2,8 +2,8 @@
 
 import React, { useState } from "react"
 import { useToast } from "src/components/ui/Toast"
-import { updateSellerStorefront } from "src/app/actions/storefrontActions"
-import { Sparkles, Plus, Trash, Check, Sliders, Image, Award, HeartHandshake } from "lucide-react"
+import { updateSellerStorefront, uploadSellerLogoAction } from "src/app/actions/storefrontActions"
+import { Sparkles, Plus, Trash, Check, Sliders, Image, Award, HeartHandshake, UploadCloud } from "lucide-react"
 
 interface TimelineNodeInput {
   year: number
@@ -18,6 +18,7 @@ interface StorefrontCustomizerProps {
 export default function StorefrontCustomizer({ initialSeller }: StorefrontCustomizerProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   // Form State
   const [companyName, setCompanyName] = useState(initialSeller.companyName || "")
@@ -41,6 +42,36 @@ export default function StorefrontCustomizer({ initialSeller }: StorefrontCustom
   const [secondaryColor, setSecondaryColor] = useState(initialSeller.customTheme?.secondaryColor || "#0F4C5C")
   const [font, setFont] = useState(initialSeller.customTheme?.font || "Plus Jakarta Sans")
   const [layoutVariant, setLayoutVariant] = useState(initialSeller.customTheme?.layoutVariant || "modern")
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadingLogo(true)
+
+    try {
+      const file = files[0]
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = (error) => reject(error)
+      })
+
+      const res = await uploadSellerLogoAction(base64)
+      if (res.success && res.url) {
+        setLogo(res.url)
+        toast("Logo uploaded successfully!", "success")
+      } else {
+        toast(res.error || "Failed to upload logo", "error")
+      }
+    } catch (err) {
+      console.error(err)
+      toast("Error uploading logo file.", "error")
+    } finally {
+      setUploadingLogo(false)
+      e.target.value = ""
+    }
+  }
 
   const handleAddTimeline = () => {
     setTimeline((prev) => [...prev, { year: new Date().getFullYear(), title: "", description: "" }])
@@ -228,25 +259,59 @@ export default function StorefrontCustomizer({ initialSeller }: StorefrontCustom
             Media Brand assets
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Logo Image URL</label>
-              <input
-                type="text"
-                value={logo}
-                onChange={(e) => setLogo(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
-                className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 outline-none focus:border-primary"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Logo Image Upload */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Company Logo</label>
+              <div className="flex items-center gap-4">
+                {logo ? (
+                  <div className="w-16 h-16 rounded-xl border border-slate-150 relative overflow-hidden bg-slate-50 shrink-0 shadow-sm group">
+                    <img src={logo} alt="Company Logo" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setLogo("")}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition duration-200"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-xl border border-dashed border-slate-200 flex items-center justify-center bg-slate-50 shrink-0">
+                    <Image className="w-6 h-6 text-slate-300" />
+                  </div>
+                )}
+                
+                <div className="flex-1 relative">
+                  <div className="border border-dashed border-slate-200 hover:border-primary/50 transition rounded-xl p-3.5 flex flex-col items-center justify-center bg-slate-50/20 cursor-pointer relative min-h-[64px]">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      disabled={uploadingLogo}
+                      className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    {uploadingLogo ? (
+                      <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                    ) : (
+                      <div className="flex flex-col items-center text-center gap-1 pointer-events-none">
+                        <UploadCloud className="w-5 h-5 text-slate-400" />
+                        <span className="text-[11px] font-bold text-slate-700">Upload Logo</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
+
+            {/* Banner Background URL */}
+            <div className="flex flex-col gap-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Banner Background URL</label>
               <input
                 type="text"
                 value={banner}
                 onChange={(e) => setBanner(e.target.value)}
                 placeholder="https://images.unsplash.com/..."
-                className="w-full text-xs font-semibold p-2.5 rounded-xl border border-slate-200 outline-none focus:border-primary"
+                className="w-full text-xs font-semibold p-3.5 rounded-xl border border-slate-200 outline-none focus:border-primary"
               />
             </div>
           </div>

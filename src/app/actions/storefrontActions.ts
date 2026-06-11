@@ -5,6 +5,7 @@ import { Seller } from "src/lib/database/models/Seller"
 import { Product } from "src/lib/database/models/Product"
 import { getAuthUser } from "src/lib/auth/jwt"
 import { SellerStorefrontSchema } from "src/lib/validation"
+import { uploadBase64ToCloudinary } from "src/lib/cloudinary"
 
 export async function getStorefrontBySlug(slug: string) {
   try {
@@ -151,5 +152,19 @@ export async function uploadVerificationDocuments(docUrls: string[]) {
   } catch (error) {
     console.error("Error uploading verification docs action:", error)
     return { success: false, error: "Failed to upload files." }
+  }
+}
+
+export async function uploadSellerLogoAction(base64Str: string) {
+  try {
+    const user = await getAuthUser()
+    if (!user || (user.role !== "seller" && user.role !== "admin")) {
+      return { success: false, error: "Unauthorized." }
+    }
+    const url = await uploadBase64ToCloudinary(base64Str, "seller_logos")
+    return { success: true, url }
+  } catch (error: any) {
+    console.error("Error uploading seller logo action:", error)
+    return { success: false, error: error.message || "Failed to upload logo." }
   }
 }

@@ -4,11 +4,10 @@ import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "src/components/ui/Toast"
-import { loginUser } from "src/app/actions/authActions"
-import { Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react"
-import Image from "next/image"
+import { forgotPassword } from "src/app/actions/authActions"
+import { Mail, ArrowRight, ShieldCheck, KeyRound } from "lucide-react"
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -18,36 +17,20 @@ export default function LoginPage() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const data = {
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-    }
+    const email = formData.get("email") as string
 
     try {
-      const result = await loginUser(data)
+      const result = await forgotPassword(email)
 
-      if (result.success && result.user) {
-        toast("Welcome back! Logging you in...", "success")
-        
-        // Redirect to dashboard
-        if (result.user.role === "admin") {
-          router.push("/admin")
-        } else if (result.user.role === "seller") {
-          router.push("/seller")
-        } else {
-          router.push("/buyer")
-        }
-        
-        router.refresh()
-      } else if (result.isUnverified) {
-        toast(result.error || "Account is not verified. Please verify using the OTP sent.", "warning")
-        router.push(`/auth/verify-otp?email=${encodeURIComponent(result.email || "")}`)
+      if (result.success) {
+        toast(result.message || "Password reset OTP sent successfully.", "success")
+        router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`)
       } else {
-        toast(result.error || "Invalid credentials.", "error")
+        toast(result.error || "Failed to trigger password reset.", "error")
       }
     } catch (err) {
       console.error(err)
-      toast("An error occurred during login.", "error")
+      toast("An error occurred. Please try again.", "error")
     } finally {
       setLoading(false)
     }
@@ -61,21 +44,21 @@ export default function LoginPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
         <Link href="/" className="inline-flex items-center gap-2 mb-6">
-                    <Image src="/logo.jpeg" alt="Logo" width={120} height={48} className="w-auto" />
-          
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
+            <span className="font-extrabold text-white text-lg">D</span>
+          </div>
+          <span className="font-extrabold text-xl text-white tracking-tight">
+            DIGIMART<span className="text-primary">360</span>
+          </span>
         </Link>
-        <h2 className="text-3xl font-extrabold text-white tracking-tight">Sign in to your account</h2>
+        <h2 className="text-3xl font-extrabold text-white tracking-tight">Forgot Password?</h2>
         <p className="mt-2 text-xs sm:text-sm text-slate-400">
-          Or{" "}
-          <Link href="/auth/register" className="font-bold text-primary hover:underline">
-            create a new B2B profile for free
-          </Link>
+          Enter your registered email below to receive a password reset code.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="bg-slate-900 border border-slate-800 py-8 px-4 shadow-2xl rounded-2xl sm:px-10">
-          
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address</label>
@@ -91,25 +74,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
-                <Link href="/auth/forgot-password" className="text-[10px] font-semibold text-slate-400 hover:text-primary transition">
-                  Forgot Password?
-                </Link>
-              </div>
-              <div className="relative">
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full text-xs font-semibold pl-8 pr-3 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
-                />
-                <Lock className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
@@ -119,19 +83,25 @@ export default function LoginPage() {
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
               ) : (
                 <>
-                  Sign In
+                  Send Reset OTP
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
             </button>
           </form>
 
+          <div className="mt-6 pt-6 border-t border-slate-800 flex items-center justify-between">
+            <Link href="/auth/login" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+              <KeyRound className="w-3.5 h-3.5" />
+              Back to Sign In
+            </Link>
+          </div>
+
           {/* Secure Trust Alert */}
           <div className="mt-6 pt-6 border-t border-slate-800 flex items-center justify-center gap-1.5 text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
             <span>SSL Secured Encrypted Session</span>
           </div>
-
         </div>
       </div>
     </div>
